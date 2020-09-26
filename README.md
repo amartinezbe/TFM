@@ -13,6 +13,7 @@ Cualquier que error del modelo estadístico es, exclusivamente, mío.
 
 
 English version.
+
 Master's Final Project
 
 This TFM studies the FS464 Eurobarometer on the impact of disinformation and on the perception of the quality of democracy, being able to consider disinformation as a threat to democracy.
