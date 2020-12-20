@@ -44,6 +44,11 @@ library(ggmosaic)
 library(mgcv)
 library(blorr)
 library(PMCMR)
+library(dotwhisker)
+library(broom)
+library(vioplot)
+library(corrplot)
+library(gplots)
 
 
 
@@ -123,6 +128,7 @@ datos1 <- within(datos1, {
 
 datos1 <- within(datos1, {
   ideologia <- as.numeric(as.character(idgov))
+  distancia_centro <- ideologia -5
 })
 
 datos1 <- within(datos1, {
@@ -153,6 +159,18 @@ datosp <-datos1
 
 datosp <- filter(datos1, isocntry %in% c("AT", "BE", "BG", "DE", "RO"))
 
+sink(file="tendencia_percepcion.txt")
+
+
+numSummary(datosp[,"percepcion", drop=FALSE], 
+           statistics=c("mean", "sd", "se(mean)", "IQR", "quantiles"), 
+           quantiles=c(0,.25,.5,.75,1))
+
+numSummary(datosp[,"percepcion", drop=FALSE], groups=datosp$country, 
+          statistics=c("mean", "sd", "se(mean)", "IQR", "quantiles"), 
+          quantiles=c(0,.25,.5,.75,1))
+
+sink()
 local({
   .Table <- xtabs(~q4_2 + idgov, data = datosp)
   cat("\nFrequency table:\n")
@@ -167,7 +185,7 @@ local({
 })
 datosp <- datos1
 
-sink(file="mf_lmcopiarv4.txt")
+sink(file="mf_stargazer.txt")
 
 
 for (val in c("AT","BE","BG","CY","CZ", "DE",
@@ -181,7 +199,7 @@ for (val in c("AT","BE","BG","CY","CZ", "DE",
 
   #para tratar el fichero globalmente utilizo Val = "GLOBAL" con if
 
-#val <- "GLOBAL" 
+val <- "GLOBAL" 
   
 if (val == "GLOBAL")
 { pais <- "GLOBAL"
@@ -190,16 +208,83 @@ if (val == "GLOBAL")
   { datosp <- filter(datos1, isocntry == val)
     pais <- datosp$country
   }
-  
+
+
+boxplot (percepcion ~  isocntry , data=datosp, col=c("red","blue"),  par(las=2), xlab = "País")
+vioplot(percepcion ~  isocntry , data=datosp, col=c("red","blue"),par(las=2),  xlab = "País")
+hist(percepcion  ~  isocntry,data=datosp, xlab = "País", border="Blue")
+with(datosp, Hist(percepcion, scale="frequency", 
+                  breaks="Sturges", col="darkgray", xlab="pais"))
+plotmeans(percepcion ~  isocntry, data=datosp, bars=TRUE,barcol="dark blue",n.label=FALSE,
+                       p=0.95, xlab="País", 
+          mean.labels=FALSE,
+          main="Percepción: Media e Intervalo de confianza", connect=FALSE)
+
+
  
+corrplot(cor(datosp[, c("deteccion", "sexo", "edad", "estudios", "veces_uso", "confianza")], 
+             use = "complete"),
+         #method = "shade", # Método para el gráfico de correlación
+         method = "number", # Método para el gráfico de correlación
+         #type = "full",    # Estilo del gráfico (también "upper" y "lower")
+         type = "upper",    # Estilo del gráfico (también "upper" y "lower")
+         diag = TRUE,      # Si TRUE (por defecto), añade la diagonal
+         tl.col = "black", # Color de las etiquetas
+         bg = "white",     # Color de fondo
+         title = "",       # Título
+         col = NULL)       # Paleta de colores
+
+
 #print(val) 
 #print(pais)
 #prueba
  
+  mbg0 <- lm(percepcion ~  deteccion, weights = wex,
+             data=datosp)
+  mbg01  <- lm(percepcion ~  deteccion + veces_uso + confianza, weights = wex,
+                data=datosp)
+ 
+  mbg02 <- lm(percepcion ~  deteccion + edad + veces_uso + confianza, weights = wex,
+              data=datosp)
+  mbg03 <- lm(percepcion ~  deteccion + sexo + veces_uso + confianza, weights = wex,
+              data=datosp)
+  mbg04 <- lm(percepcion ~  deteccion + estudios + veces_uso + confianza, weights = wex,
+              data=datosp)
   
-  mbg1 <- lm(percepcion ~  edad  + sexo + veces_uso + confianza + deteccion + estudios, weights = wex,
+  mbg1 <- lm(percepcion ~  deteccion + edad  + sexo + estudios + veces_uso + confianza, weights = wex,
           data=datosp)
 
+  dwplot(list(mbg0,mbg01,mbg02,mbg03,mbg04, mbg1))
+  dwplot(mbg01)
+ 
+  
+  m <- list()
+  ordered_vars <- c("deteccion", "veces_uso", "confianza", "edad", "sexo", "estudios")
+  m[[1]] <- lm(percepcion ~ deteccion, data = datosp)
+  m123456_df <- m[[1]] %>% tidy %>% by_2sd(datosp) %>%
+    mutate(model = "Model 1")
+
+  for (i in 2:6)
+  {  
+    if (i == 2)
+    {
+      m[[i]] <- update(m[[i-1]], paste(". ~ . +", ordered_vars[i]))
+      m[[i]] <- update(m[[i]], paste(". ~ . +", ordered_vars[i+1]))   
+      }
+    else 
+    {
+    m[[i]] <- update(m[[i-1]], paste(". ~ . +", ordered_vars[i]))
+    }
+    m123456_df <- rbind(m123456_df, m[[i]] %>% tidy %>% by_2sd(datosp) %>%
+                          mutate(model = paste("Model", i)))
+  }
+
+  
+  # Generate a 'small multiple' plot
+  small_multiple(m123456_df)
+  
+  print (m123456_df)
+  
 #print (summary(mbg1))
 
  # ci_1 <- confint(mbg1)
@@ -207,12 +292,13 @@ if (val == "GLOBAL")
 
 #correlaciones
   
- # cor(datosp[, c("confianza", "edad", "sexo", "deteccion", "estudios", "veces_uso")], use = "complete")
-
-     stargazer(mbg1, title=paste("País: ",pais,".  Resultados modelo", sep=""),
+ cor(datosp[, c("confianza", "edad", "sexo", "deteccion", "estudios", "veces_uso")], use = "complete")
+ cor(datosp[, c("deteccion", "sexo", "edad", "estudios", "veces_uso", "confianza")], use = "complete")
+ 
+     stargazer(mbg0,mbg01,mbg02,mbg03, mbg04, mbg1, title=paste("País: ",pais,".  Resultados modelo", sep=""),
                align=TRUE, type="text",
                dep.var.labels=c("Percepción problema para la democracia"),
-               column.labels=c("Modelo"),
+               column.labels=c("Detección", "Controles", "Edad", "Sexo", "Estudios", "Total"),
                ci=TRUE,
                omit.stat = NULL,
                omit.summary.stat = NULL,
@@ -233,6 +319,25 @@ sink()
 datosp <- datos1
 
 #ideologia a nivel global
+
+
+mbgh3 <- lm(percepcion ~  ideologia, weights = wex, data=datosp)
+
+cor(datosp[, c("percepcion", "ideologia")], use = "complete")
+
+stargazer(mbgh3, title=paste("País: ",pais,".  Resultados modelo Hipótesis 3", sep=""),
+          align=TRUE, type="text",
+          dep.var.labels=c("Percepción problema para la democracia"),
+          column.labels=c("Distancia centro"),
+          ci=TRUE,
+          omit.stat = NULL,
+          omit.summary.stat = NULL,
+          # omit.stat=c("all"), 
+          no.space=TRUE, 
+          single.row=TRUE)
+
+
+
 
 boxplot(percepcion ~ idgov, col = c("yellow", "blue", "white","green", "red"),
         xlab="Ideología gobierno (1-extrema izquierda, 9 -extrema derecha)",

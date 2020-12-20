@@ -1,0 +1,14 @@
+     mean        sd   se(mean) IQR 0% 25% 50% 75% 100%    n
+ 2.274913 0.8505492 0.01293321   1  0   2   2   3    3 4325
+                  mean        sd   se(mean) IQR 0% 25% 50% 75% 100%
+AT - Austria  2.262870 0.7543087 0.02496398   1  0   2   2   3    3
+BE - Belgium  2.050885 0.9099300 0.03026382   1  0   2   2   3    3
+BG - Bulgaria 2.444444 0.8772583 0.03048683   1  0   2   3   3    3
+DE - Germany  2.243848 0.7910765 0.02645755   1  0   2   2   3    3
+RO - Romania  2.403308 0.8618979 0.03074288   1  0   2   3   3    3
+              percepcion:n
+AT - Austria           913
+BE - Belgium           904
+BG - Bulgaria          828
+DE - Germany           894
+RO - Romania           786
