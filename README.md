@@ -24,5 +24,5 @@ Here are all the files used and models defined in R for the TFM.
 
 Data and R files can be freely used without any problem. If R models are used, the source should be cited.
 
-Any error in the statistical model are exclusively mine.
+Any error in the statistical model is exclusively mine.
 
