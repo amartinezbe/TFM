@@ -254,36 +254,35 @@ corrplot(cor(datosp[, c("deteccion", "sexo", "edad", "estudios", "veces_uso", "c
   mbg1 <- lm(percepcion ~  deteccion + edad  + sexo + estudios + veces_uso + confianza, weights = wex,
           data=datosp)
 
-  dwplot(list(mbg0,mbg01,mbg02,mbg03,mbg04, mbg1))
-  dwplot(mbg01)
- 
   
   m <- list()
   ordered_vars <- c("deteccion", "veces_uso", "confianza", "edad", "sexo", "estudios")
-  m[[1]] <- lm(percepcion ~ deteccion, data = datosp)
-  m123456_df <- m[[1]] %>% tidy %>% by_2sd(datosp) %>%
+  m[[1]] <- lm(percepcion ~ deteccion, data = datosp,weights = wex)
+  m123456_df <- m[[1]] %>% tidy %>%# by_2sd(datosp) %>%
     mutate(model = "Model 1")
-
-  for (i in 2:6)
-  {  
-    if (i == 2)
-    {
-      m[[i]] <- update(m[[i-1]], paste(". ~ . +", ordered_vars[i]))
-      m[[i]] <- update(m[[i]], paste(". ~ . +", ordered_vars[i+1]))   
-      }
-    else 
-    {
-    m[[i]] <- update(m[[i-1]], paste(". ~ . +", ordered_vars[i]))
-    }
-    m123456_df <- rbind(m123456_df, m[[i]] %>% tidy %>% by_2sd(datosp) %>%
-                          mutate(model = paste("Model", i)))
-  }
+  m[[2]] <- lm(percepcion ~ deteccion + veces_uso + confianza, data = datosp,weights = wex)
+  m123456_df <- rbind(m123456_df, m[[2]] %>% tidy %>%# by_2sd(datosp) %>%
+                        mutate(model = paste("Model", 2)))
+  
+  m[[3]] <- lm(percepcion ~ deteccion + edad + veces_uso + confianza, data = datosp, weights = wex)
+  m123456_df <- rbind(m123456_df, m[[3]] %>% tidy %>%# by_2sd(datosp) %>%
+                        mutate(model = paste("Model", 3)))
+  m[[4]] <- lm(percepcion ~ deteccion + sexo + veces_uso + confianza, data = datosp,weights = wex)
+  m123456_df <- rbind(m123456_df, m[[4]] %>% tidy %>%# by_2sd(datosp) %>%
+                        mutate(model = paste("Model", 4)))
+  m[[5]] <- lm(percepcion ~ deteccion + estudios + veces_uso + confianza, data = datosp, weights = wex)
+  m123456_df <- rbind(m123456_df, m[[5]] %>% tidy %>%# by_2sd(datosp) %>%
+                        mutate(model = paste("Model", 5)))  
+  m[[6]] <- lm(percepcion ~ deteccion + edad  + sexo + estudios + veces_uso + confianza, data = datosp, weights = wex)
+  m123456_df <- rbind(m123456_df, m[[6]] %>% tidy %>%# by_2sd(datosp) %>%
+                        mutate(model = paste("Model", 6)))  
 
   
   # Generate a 'small multiple' plot
   small_multiple(m123456_df)
   
   print (m123456_df)
+  
   
 #print (summary(mbg1))
 
